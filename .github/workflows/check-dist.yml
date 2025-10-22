@@ -23,27 +23,23 @@ permissions:
 jobs:
   check-dist:
     name: Check dist/
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
         id: checkout
         uses: actions/checkout@v5
 
-      - name: Setup Node.js
-        id: setup-node
-        uses: actions/setup-node@v5
-        with:
-          node-version-file: .node-version
-          cache: npm
+      - name: Prepare Worker
+        uses: ./.github/actions/prepare-nix
 
       - name: Install Dependencies
-        id: install
-        run: npm ci
+        id: npm-ci
+        run: nix develop --impure --command bash -c "pnpm ci"
 
       - name: Build dist/ Directory
         id: build
-        run: npm run bundle
+        run: nix develop --impure --command bash -c "pnpm run bundle"
 
       # This will fail the workflow if the `dist/` directory is different than
       # expected.

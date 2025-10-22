@@ -19,40 +19,25 @@ permissions:
 jobs:
   licensed:
     name: Check Licenses
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
         id: checkout
         uses: actions/checkout@v5
 
-      - name: Setup Node.js
-        id: setup-node
-        uses: actions/setup-node@v5
-        with:
-          node-version-file: .node-version
-          cache: npm
+      - name: Prepare Worker
+        uses: ./.github/actions/prepare-nix
 
       - name: Install Dependencies
-        id: npm-ci
-        run: npm ci
-
-      - name: Setup Ruby
-        id: setup-ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: ruby
-
-      - uses: licensee/setup-licensed@v1.3.2
-        with:
-          version: 4.x
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+        id: pnpm-ci
+        run: nix develop --impure --command bash -c "pnpm ci"
 
       # If this is a workflow_dispatch event, update the cached licenses.
       - if: ${{ github.event_name == 'workflow_dispatch' }}
         name: Update Licenses
         id: update-licenses
-        run: licensed cache
+        run: nix develop --impure --command bash -c "licensed cache"
 
       # Then, commit the updated licenses to the repository.
       - if: ${{ github.event_name == 'workflow_dispatch' }}
@@ -68,4 +53,4 @@ jobs:
       # Last, check the status of the cached licenses.
       - name: Check Licenses
         id: check-licenses
-        run: licensed status
+        run: nix develop --impure --command bash -c "licensed status"

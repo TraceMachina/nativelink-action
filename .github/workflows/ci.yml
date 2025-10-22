@@ -14,39 +14,27 @@ permissions:
 jobs:
   test-typescript:
     name: TypeScript Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
         id: checkout
         uses: actions/checkout@v5
 
-      - name: Setup Node.js
-        id: setup-node
-        uses: actions/setup-node@v5
-        with:
-          node-version-file: .node-version
-          cache: npm
+      - name: Prepare Worker
+        uses: ./.github/actions/prepare-nix
 
       - name: Install Dependencies
-        id: npm-ci
-        run: npm ci
-
-      - name: Check Format
-        id: npm-format-check
-        run: npm run format:check
-
-      - name: Lint
-        id: npm-lint
-        run: npm run lint
+        id: pnpm-ci
+        run: nix develop --impure --command bash -c "pnpm ci"
 
       - name: Test
         id: npm-ci-test
-        run: npm run ci-test
+        run: nix develop --impure --command bash -c "pnpm ci-test"
 
   test-action:
     name: GitHub Actions Test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
