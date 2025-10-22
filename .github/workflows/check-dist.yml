@@ -34,8 +34,10 @@ jobs:
         uses: ./.github/actions/prepare-nix
 
       - name: Install Dependencies
-        id: npm-ci
-        run: nix develop --impure --command bash -c "pnpm ci"
+        id: pnpm-install
+        run:
+          nix develop --impure --command bash -c "pnpm install
+          --frozen-lockfile"
 
       - name: Build dist/ Directory
         id: build
