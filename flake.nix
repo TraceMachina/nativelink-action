@@ -59,7 +59,6 @@
             pkgs.nodejs_24
             pnpm
             pkgs.actionlint
-            pkgs.licensed
           ];
           shellHook = ''
             export SHELL=${pkgs.bashInteractive}/bin/bash
