@@ -75,6 +75,8 @@ build --remote_executor=${schedulerUrl}`
     // Fail the workflow run if an error occurs
     if (error instanceof Error) {
       core.setFailed(error.message)
+    } else {
+      core.setFailed('An unknown error occurred: ' + JSON.stringify(error))
     }
   }
 }

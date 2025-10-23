@@ -6,12 +6,44 @@ jest.unstable_mockModule('fs', () => ({
   default: fs
 }))
 
+jest.spyOn(console, 'log').mockImplementation(() => {})
+
 // The module being tested should be imported dynamically. This ensures that the
 // mocks are used in place of any actual dependencies.
 const { run } = await import('../src/main.ts')
 
+const makeCore = (inputs: Record<string, string>) => {
+  return {
+    getInput: (name: string, options?: { required: boolean }) => {
+      if (name in inputs) {
+        return inputs[name]
+      }
+      if (options?.required === true) {
+        throw new Error(`Input ${name} is required but was not provided`)
+      }
+      return ''
+    },
+    setFailed: jest.fn()
+  }
+}
+
+const defaultInputs = {
+  api_key: 'demo-key',
+  account: 'demo-account',
+  prefix: 'demo-prefix'
+}
+
+const defaultOutput = `build --remote_cache=grpcs://cas-demo-prefix.build-faster.nativelink.net
+build --remote_header=x-nativelink-api-key=demo-key
+build --bes_backend=grpcs://bes-demo-prefix.build-faster.nativelink.net
+build --bes_header=x-nativelink-api-key=demo-key
+build --bes_results_url=https://app.nativelink.com/a/demo-account/build
+build --remote_timeout=600
+build --remote_executor=grpcs://scheduler-demo-prefix.build-faster.nativelink.net`
+
 describe('main.ts', () => {
   beforeEach(() => {
+    vol.reset()
     vol.mkdirSync(process.cwd(), { recursive: true })
   })
 
@@ -19,51 +51,109 @@ describe('main.ts', () => {
     jest.resetAllMocks()
   })
 
-  it('Writes bazel config', async () => {
-    const core = {
-      getInput: (name: string, options?: { required: boolean }) => {
-        switch (name) {
-          case 'api_key':
-            return 'demo-key'
-          case 'account':
-            return 'demo-account'
-          case 'prefix':
-            return 'demo-prefix'
-          default:
-            if (options?.required === true) {
-              throw new Error(`Input ${name} is required but was not provided`)
-            }
-            return ''
-        }
-      },
-      setFailed: (message: string) => {
-        console.log(`Failed: ${message}`)
-      }
-    }
-
-    await run(core)
+  const writesBazelRc = async (
+    inputs: Record<string, string>,
+    output: string
+  ) => {
+    await run(makeCore(inputs))
     const expected: Record<string, string> = {}
-    expected[`${process.cwd()}/.bazelrc`] =
-      `build --remote_cache=grpcs://cas-demo-prefix.build-faster.nativelink.net
-build --remote_header=x-nativelink-api-key=demo-key
-build --bes_backend=grpcs://bes-demo-prefix.build-faster.nativelink.net
-build --bes_header=x-nativelink-api-key=demo-key
-build --bes_results_url=https://app.nativelink.com/a/demo-account/build
-build --remote_timeout=600
-build --remote_executor=grpcs://scheduler-demo-prefix.build-faster.nativelink.net`
+    expected[`${process.cwd()}/.bazelrc`] = output
     expect(vol.toJSON()).toEqual(expected)
+  }
+
+  it('Writes bazel config', async () => {
+    writesBazelRc(defaultInputs, defaultOutput)
   })
 
-  // it('Sets a failed status', async () => {
-  //   // Clear the getInput mock and return an invalid value.
-  //   core.getInput.mockClear().mockReturnValueOnce('this is not a number')
+  it('Writes bazel config for dev', async () => {
+    writesBazelRc(
+      { ...defaultInputs, environment: 'dev' },
+      `build --remote_cache=grpcs://cas-demo-prefix.uc1.scdev.nativelink.net
+build --remote_header=x-nativelink-api-key=demo-key
+build --bes_backend=grpcs://bes-demo-prefix.uc1.scdev.nativelink.net
+build --bes_header=x-nativelink-api-key=demo-key
+build --bes_results_url=https://web-dev.uc1.scdev.nativelink.net/a/demo-account/build
+build --remote_timeout=600
+build --remote_executor=grpcs://scheduler-demo-prefix.uc1.scdev.nativelink.net`
+    )
+  })
 
-  //   await run()
+  it('Writes bazel config with custom cache', async () => {
+    writesBazelRc(
+      { ...defaultInputs, cache_url: 'http://cache-url-foo' },
+      defaultOutput.replace(
+        'grpcs://cas-demo-prefix.build-faster.nativelink.net',
+        'http://cache-url-foo'
+      )
+    )
+  })
 
-  //   // Verify that the action was marked as failed.
-  //   expect(core.setFailed).toHaveBeenNthCalledWith(
-  //     1,
-  //     'milliseconds is not a number'
-  //   )
-  // })
+  it('Writes bazel config with custom bes', async () => {
+    writesBazelRc(
+      { ...defaultInputs, bes_url: 'http://bes-url-foo' },
+      defaultOutput.replace(
+        'grpcs://bes-demo-prefix.build-faster.nativelink.net',
+        'http://bes-url-foo'
+      )
+    )
+  })
+
+  it('Writes bazel config with custom bes_results_url', async () => {
+    writesBazelRc(
+      { ...defaultInputs, bes_results_url: 'http://bes-results-url-foo' },
+      defaultOutput.replace(
+        'https://app.nativelink.com/a/demo-account/build',
+        'http://bes-results-url-foo'
+      )
+    )
+  })
+
+  it('Writes bazel config with custom scheduler_url', async () => {
+    writesBazelRc(
+      { ...defaultInputs, scheduler_url: 'http://scheduler-url-foo' },
+      defaultOutput.replace(
+        'grpcs://scheduler-demo-prefix.build-faster.nativelink.net',
+        'http://scheduler-url-foo'
+      )
+    )
+  })
+
+  it('Writes bazel config with custom remote timeout', async () => {
+    writesBazelRc(
+      { ...defaultInputs, remote_timeout: '100' },
+      defaultOutput.replace('600', '100')
+    )
+  })
+
+  const badSettings = async (
+    extraInputs: Record<string, string>,
+    errorMsg: string
+  ) => {
+    const core = makeCore({
+      ...defaultInputs,
+      ...extraInputs
+    })
+    await run(core)
+    expect(core.setFailed).toHaveBeenCalledWith(errorMsg)
+    const expected: Record<string, string | null> = {}
+    expected[`${process.cwd()}`] = null
+    expect(vol.toJSON()).toEqual(expected)
+  }
+
+  it('Has bad environment', async () => {
+    await badSettings({ environment: 'wrong' }, 'Invalid environment: wrong')
+  })
+
+  it('Goes boom on non-error', async () => {
+    const core = {
+      ...makeCore(defaultInputs),
+      getInput: () => {
+        throw 'Boom!'
+      }
+    }
+    await run(core)
+    expect(core.setFailed).toHaveBeenCalledWith(
+      'An unknown error occurred: \"Boom!\"'
+    )
+  })
 })
