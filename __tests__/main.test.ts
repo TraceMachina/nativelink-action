@@ -1,62 +1,69 @@
-/**
- * Unit tests for the action's main functionality, src/main.ts
- *
- * To mock dependencies in ESM, you can create fixtures that export mock
- * functions and objects. For example, the core module is mocked in this test,
- * so that the actual '@actions/core' module is not imported.
- */
 import { jest } from '@jest/globals'
-import * as core from '../__fixtures__/core.js'
-import { wait } from '../__fixtures__/wait.js'
+import { fs, vol } from 'memfs'
 
-// Mocks should be declared before the module being tested is imported.
-jest.unstable_mockModule('@actions/core', () => core)
-jest.unstable_mockModule('../src/wait.js', () => ({ wait }))
+jest.unstable_mockModule('fs', () => ({
+  __esModule: true,
+  default: fs
+}))
 
 // The module being tested should be imported dynamically. This ensures that the
 // mocks are used in place of any actual dependencies.
-const { run } = await import('../src/main.js')
+const { run } = await import('../src/main.ts')
 
 describe('main.ts', () => {
   beforeEach(() => {
-    // Set the action's inputs as return values from core.getInput().
-    core.getInput.mockImplementation(() => '500')
-
-    // Mock the wait function so that it does not actually wait.
-    wait.mockImplementation(() => Promise.resolve('done!'))
+    vol.mkdirSync(process.cwd(), { recursive: true })
   })
 
   afterEach(() => {
     jest.resetAllMocks()
   })
 
-  it('Sets the time output', async () => {
-    await run()
+  it('Writes bazel config', async () => {
+    const core = {
+      getInput: (name: string, options?: { required: boolean }) => {
+        switch (name) {
+          case 'api_key':
+            return 'demo-key'
+          case 'account':
+            return 'demo-account'
+          case 'prefix':
+            return 'demo-prefix'
+          default:
+            if (options?.required === true) {
+              throw new Error(`Input ${name} is required but was not provided`)
+            }
+            return ''
+        }
+      },
+      setFailed: (message: string) => {
+        console.log(`Failed: ${message}`)
+      }
+    }
 
-    // Verify the time output was set.
-    expect(core.setOutput).toHaveBeenNthCalledWith(
-      1,
-      'time',
-      // Simple regex to match a time string in the format HH:MM:SS.
-      expect.stringMatching(/^\d{2}:\d{2}:\d{2}/)
-    )
+    await run(core)
+    const expected: Record<string, string> = {}
+    expected[`${process.cwd()}/.bazelrc`] =
+      `build --remote_cache=grpcs://cas-demo-prefix.build-faster.nativelink.net
+build --remote_header=x-nativelink-api-key=demo-key
+build --bes_backend=grpcs://bes-demo-prefix.build-faster.nativelink.net
+build --bes_header=x-nativelink-api-key=demo-key
+build --bes_results_url=https://app.nativelink.com/a/demo-account/build
+build --remote_timeout=600
+build --remote_executor=grpcs://scheduler-demo-prefix.build-faster.nativelink.net`
+    expect(vol.toJSON()).toEqual(expected)
   })
 
-  it('Sets a failed status', async () => {
-    // Clear the getInput mock and return an invalid value.
-    core.getInput.mockClear().mockReturnValueOnce('this is not a number')
+  // it('Sets a failed status', async () => {
+  //   // Clear the getInput mock and return an invalid value.
+  //   core.getInput.mockClear().mockReturnValueOnce('this is not a number')
 
-    // Clear the wait mock and return a rejected promise.
-    wait
-      .mockClear()
-      .mockRejectedValueOnce(new Error('milliseconds is not a number'))
+  //   await run()
 
-    await run()
-
-    // Verify that the action was marked as failed.
-    expect(core.setFailed).toHaveBeenNthCalledWith(
-      1,
-      'milliseconds is not a number'
-    )
-  })
+  //   // Verify that the action was marked as failed.
+  //   expect(core.setFailed).toHaveBeenNthCalledWith(
+  //     1,
+  //     'milliseconds is not a number'
+  //   )
+  // })
 })

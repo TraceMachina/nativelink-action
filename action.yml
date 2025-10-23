@@ -10,15 +10,29 @@ branding:
 
 # Define your inputs here.
 inputs:
-  milliseconds:
-    description: Your input description here
+  api_key:
+    description: API Key for Nativelink
     required: true
-    default: '1000'
-
-# Define your outputs here.
-outputs:
-  time:
-    description: Your output description here
+  account:
+    description: Nativelink Account Name
+    required: true
+  prefix:
+    description: Nativelink Cache Prefix
+    required: true
+  cache_url:
+    description: Nativelink Cache URL
+  bes_url:
+    description: Nativelink Build Event Service URL
+  bes_results_url:
+    description: Nativelink Build Results URL
+  scheduler_url:
+    description: Nativelink Scheduler URL
+  remote_timeout:
+    description: Remote Execution Timeout in seconds
+    default: 600
+  environment:
+    description: Nativelink Environment
+    default: prod
 
 runs:
   using: node24

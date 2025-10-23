@@ -3,6 +3,7 @@
  * main logic.
  */
 import { run } from './main.js'
+import core from '@actions/core'
 
 /* istanbul ignore next */
-run()
+run(core)

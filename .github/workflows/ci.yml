@@ -47,8 +47,12 @@ jobs:
         id: test-action
         uses: ./
         with:
-          milliseconds: 2000
-
-      - name: Print Output
-        id: output
-        run: echo "${{ steps.test-action.outputs.time }}"
+          api_key: ${{ secrets.NATIVELINK_API_KEY }}
+          account: tom-parker-shemilt
+          prefix: tom-parker-shemilt-y0738m
+          cache_url: grpcs://cas-tom-parker-shemilt-y0738m.build-faster.nativelink.net
+          bes_url: grpcs://bes-tom-parker-shemilt-y0738m
+          bes_results_url: https://app.nativelink.com/a/tom-parker-shemilt/build
+          scheduler_url: grpcs://scheduler-tom-parker-shemilt-y0738m.build-faster.nativelink.net:443
+          remote_timeout: 600
+          environment: prod
