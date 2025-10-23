@@ -47,7 +47,7 @@ jobs:
         id: test-action
         uses: ./
         with:
-          api_key: ${{ secrets.NATIVELINK_API_KEY }}
+          api_key: demo-key
           account: tom-parker-shemilt
           prefix: tom-parker-shemilt-y0738m
           cache_url: grpcs://cas-tom-parker-shemilt-y0738m.build-faster.nativelink.net
