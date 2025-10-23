@@ -55,7 +55,9 @@ describe('main.ts', () => {
     inputs: Record<string, string>,
     output: string
   ) => {
-    await run(makeCore(inputs))
+    const core = makeCore(inputs)
+    await run(core)
+    expect(core.setFailed).not.toHaveBeenCalled()
     const expected: Record<string, string> = {}
     expected[`${process.cwd()}/.bazelrc`] = output
     expect(vol.toJSON()).toEqual(expected)
@@ -125,6 +127,14 @@ build --remote_executor=grpcs://scheduler-demo-prefix.uc1.scdev.nativelink.net`
     )
   })
 
+  it('Writes bazel config with existing config', async () => {
+    fs.writeFileSync('.bazelrc', 'build --existing_config=foo')
+    writesBazelRc(
+      defaultInputs,
+      'build --existing_config=foo\n' + defaultOutput
+    )
+  })
+
   const badSettings = async (
     extraInputs: Record<string, string>,
     errorMsg: string
@@ -154,6 +164,17 @@ build --remote_executor=grpcs://scheduler-demo-prefix.uc1.scdev.nativelink.net`
     await run(core)
     expect(core.setFailed).toHaveBeenCalledWith(
       'An unknown error occurred: \"Boom!\"'
+    )
+  })
+
+  it('Goes boom on non-error', async () => {
+    fs.readFileSync = () => {
+      throw 'bad file'
+    }
+    const core = makeCore(defaultInputs)
+    await run(core)
+    expect(core.setFailed).toHaveBeenCalledWith(
+      'An unknown error occurred: \"bad file\"'
     )
   })
 })

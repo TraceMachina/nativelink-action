@@ -62,14 +62,27 @@ export async function run(core: CoreType): Promise<void> {
       remoteTimeout = '600'
     }
 
-    const bazelConfig = `build --remote_cache=${cacheUrl}
+    let existingBazelrc: string = ''
+    try {
+      existingBazelrc = fs.readFileSync('.bazelrc', 'utf-8')
+    } catch (error) {
+      // Ignore error if file does not exist
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        throw error
+      }
+    }
+
+    let bazelConfig = `build --remote_cache=${cacheUrl}
 build --remote_header=x-nativelink-api-key=${apiKey}
 build --bes_backend=${besUrl}
 build --bes_header=x-nativelink-api-key=${apiKey}
 build --bes_results_url=${besResultsUrl}
 build --remote_timeout=${remoteTimeout}
 build --remote_executor=${schedulerUrl}`
-    console.log(`Bazel config: \n${bazelConfig}`)
+
+    if (existingBazelrc !== '') {
+      bazelConfig = existingBazelrc + '\n' + bazelConfig
+    }
     fs.writeFileSync('.bazelrc', bazelConfig)
   } catch (error) {
     // Fail the workflow run if an error occurs
