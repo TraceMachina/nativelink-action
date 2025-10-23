@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import require$$0 from 'os';
 import require$$0$1 from 'crypto';
 import require$$1 from 'fs';
@@ -26,9 +27,87 @@ import require$$0$7 from 'diagnostics_channel';
 import require$$2$2 from 'child_process';
 import require$$6$1 from 'timers';
 
+async function run(core) {
+    try {
+        const apiKey = core.getInput('api_key', { required: true });
+        const account = core.getInput('account', { required: true });
+        const prefix = core.getInput('prefix', { required: true });
+        let raw_environment = core.getInput('environment');
+        if (raw_environment === '') {
+            raw_environment = 'prod';
+        }
+        if (raw_environment !== 'prod' && raw_environment !== 'dev') {
+            throw new Error(`Invalid environment: ${raw_environment}`);
+        }
+        let environment = raw_environment;
+        let cacheUrl = core.getInput('cache_url');
+        if (cacheUrl === '') {
+            if (environment === 'prod') {
+                cacheUrl = `grpcs://cas-${prefix}.build-faster.nativelink.net`;
+            }
+            else {
+                cacheUrl = `grpcs://cas-${prefix}.uc1.scdev.nativelink.net`;
+            }
+        }
+        let besUrl = core.getInput('bes_url');
+        if (besUrl === '') {
+            if (environment === 'prod') {
+                besUrl = `grpcs://bes-${prefix}.build-faster.nativelink.net`;
+            }
+            else {
+                besUrl = `grpcs://bes-${prefix}.uc1.scdev.nativelink.net`;
+            }
+        }
+        let besResultsUrl = core.getInput('bes_results_url');
+        if (besResultsUrl === '') {
+            if (environment === 'prod') {
+                besResultsUrl = `https://app.nativelink.com/a/${account}/build`;
+            }
+            else {
+                besResultsUrl = `https://web-dev.uc1.scdev.nativelink.net/a/${account}/build`;
+            }
+        }
+        let schedulerUrl = core.getInput('scheduler_url');
+        if (schedulerUrl === '') {
+            if (environment === 'prod') {
+                schedulerUrl = `grpcs://scheduler-${prefix}.build-faster.nativelink.net`;
+            }
+            else {
+                schedulerUrl = `grpcs://scheduler-${prefix}.uc1.scdev.nativelink.net`;
+            }
+        }
+        let remoteTimeout = core.getInput('remote_timeout');
+        if (remoteTimeout === '') {
+            remoteTimeout = '600';
+        }
+        const bazelConfig = `build --remote_cache=${cacheUrl}
+build --remote_header=x-nativelink-api-key=${apiKey}
+build --bes_backend=${besUrl}
+build --bes_header=x-nativelink-api-key=${apiKey}
+build --bes_results_url=${besResultsUrl}
+build --remote_timeout=${remoteTimeout}
+build --remote_executor=${schedulerUrl}`;
+        console.log(`Bazel config: \n${bazelConfig}`);
+        fs.writeFileSync('.bazelrc', bazelConfig);
+    }
+    catch (error) {
+        // Fail the workflow run if an error occurs
+        if (error instanceof Error) {
+            core.setFailed(error.message);
+        }
+        else {
+            core.setFailed('An unknown error occurred: ' + JSON.stringify(error));
+        }
+    }
+}
+
 var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
-var core = {};
+function getDefaultExportFromCjs (x) {
+	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
+}
+
+var core$1 = {};
 
 var command = {};
 
@@ -26901,10 +26980,10 @@ function requirePlatform () {
 var hasRequiredCore;
 
 function requireCore () {
-	if (hasRequiredCore) return core;
+	if (hasRequiredCore) return core$1;
 	hasRequiredCore = 1;
 	(function (exports) {
-		var __createBinding = (core && core.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+		var __createBinding = (core$1 && core$1.__createBinding) || (Object.create ? (function(o, m, k, k2) {
 		    if (k2 === undefined) k2 = k;
 		    var desc = Object.getOwnPropertyDescriptor(m, k);
 		    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
@@ -26915,19 +26994,19 @@ function requireCore () {
 		    if (k2 === undefined) k2 = k;
 		    o[k2] = m[k];
 		}));
-		var __setModuleDefault = (core && core.__setModuleDefault) || (Object.create ? (function(o, v) {
+		var __setModuleDefault = (core$1 && core$1.__setModuleDefault) || (Object.create ? (function(o, v) {
 		    Object.defineProperty(o, "default", { enumerable: true, value: v });
 		}) : function(o, v) {
 		    o["default"] = v;
 		});
-		var __importStar = (core && core.__importStar) || function (mod) {
+		var __importStar = (core$1 && core$1.__importStar) || function (mod) {
 		    if (mod && mod.__esModule) return mod;
 		    var result = {};
 		    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
 		    __setModuleDefault(result, mod);
 		    return result;
 		};
-		var __awaiter = (core && core.__awaiter) || function (thisArg, _arguments, P, generator) {
+		var __awaiter = (core$1 && core$1.__awaiter) || function (thisArg, _arguments, P, generator) {
 		    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
 		    return new (P || (P = Promise))(function (resolve, reject) {
 		        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -27247,54 +27326,17 @@ function requireCore () {
 		 */
 		exports.platform = __importStar(requirePlatform());
 		
-	} (core));
-	return core;
+	} (core$1));
+	return core$1;
 }
 
 var coreExports = requireCore();
-
-/**
- * Waits for a number of milliseconds.
- *
- * @param milliseconds The number of milliseconds to wait.
- * @returns Resolves with 'done!' after the wait is over.
- */
-async function wait(milliseconds) {
-    return new Promise((resolve) => {
-        if (isNaN(milliseconds))
-            throw new Error('milliseconds is not a number');
-        setTimeout(() => resolve('done!'), milliseconds);
-    });
-}
-
-/**
- * The main function for the action.
- *
- * @returns Resolves when the action is complete.
- */
-async function run() {
-    try {
-        const ms = coreExports.getInput('milliseconds');
-        // Debug logs are only output if the `ACTIONS_STEP_DEBUG` secret is true
-        coreExports.debug(`Waiting ${ms} milliseconds ...`);
-        // Log the current timestamp, wait, then log the new timestamp
-        coreExports.debug(new Date().toTimeString());
-        await wait(parseInt(ms, 10));
-        coreExports.debug(new Date().toTimeString());
-        // Set outputs for other workflow steps to use
-        coreExports.setOutput('time', new Date().toTimeString());
-    }
-    catch (error) {
-        // Fail the workflow run if an error occurs
-        if (error instanceof Error)
-            coreExports.setFailed(error.message);
-    }
-}
+var core = /*@__PURE__*/getDefaultExportFromCjs(coreExports);
 
 /**
  * The entrypoint for the action. This file simply imports and runs the action's
  * main logic.
  */
 /* istanbul ignore next */
-run();
+run(core);
 //# sourceMappingURL=index.js.map

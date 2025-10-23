@@ -113,4 +113,20 @@ in {
     require_serial = true;
     pass_filenames = false;
   };
+
+  # dist
+  dist = {
+    description = "dist";
+    enable = true;
+    entry = let
+      script = pkgs.writeShellScript "precommit-dist" ''
+        set -xeuo pipefail
+        if [ ! -d node_modules ]; then ${pnpm}/bin/pnpm install; fi
+        ${pnpm}/bin/pnpm package
+      '';
+    in
+      builtins.toString script;
+    require_serial = true;
+    pass_filenames = false;
+  };
 }
