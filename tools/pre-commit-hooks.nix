@@ -97,4 +97,20 @@ in {
     args = ["-r" "--indent" "2"];
     types = ["json5"];
   };
+
+  # coverage
+  coverage = {
+    description = "coverage badge";
+    enable = true;
+    entry = let
+      script = pkgs.writeShellScript "precommit-coverage" ''
+        set -xeuo pipefail
+        if [ ! -d node_modules ]; then ${pnpm}/bin/pnpm install; fi
+        ${pnpm}/bin/pnpm coverage
+      '';
+    in
+      builtins.toString script;
+    require_serial = true;
+    pass_filenames = false;
+  };
 }
