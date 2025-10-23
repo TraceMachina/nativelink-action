@@ -106,6 +106,7 @@ in {
       script = pkgs.writeShellScript "precommit-coverage" ''
         set -xeuo pipefail
         if [ ! -d node_modules ]; then ${pnpm}/bin/pnpm install; fi
+        ${pnpm}/bin/pnpm test
         ${pnpm}/bin/pnpm coverage
       '';
     in
