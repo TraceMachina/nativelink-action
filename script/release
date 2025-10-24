@@ -81,6 +81,9 @@ fi
 git tag "$new_tag" --annotate --message "$new_tag Release"
 echo -e "Tagged: ${BOLD_GREEN}$new_tag${OFF}"
 
+git tag -f latest --annotate --message "$new_tag Release"
+echo -e "Tagged: ${BOLD_GREEN}latest${OFF}"
+
 # 7. Set 'is_major_release' variable
 new_major_release_tag=$(expr "$new_tag" : "$major_semver_tag_regex")
 
