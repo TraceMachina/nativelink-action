@@ -5,8 +5,8 @@ author: Trace Machina <tom@tracemachina.com>
 
 # Add your action's branding here. This will appear on the GitHub Marketplace.
 branding:
-  icon: heart
-  color: red
+  icon: share-2
+  color: purple
 
 # Define your inputs here.
 inputs:
