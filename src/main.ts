@@ -1,5 +1,5 @@
 import fs from 'node:fs'
-import { parse, stringify } from 'smol-toml'
+import { parse, stringify } from 'ini'
 
 type Environment = 'prod' | 'dev'
 
@@ -117,7 +117,10 @@ build --remote_executor=${schedulerUrl}`
           ...existingconfig
         }
       }
-      fs.writeFileSync('.buckconfig', stringify(buckconfig))
+      fs.writeFileSync(
+        '.buckconfig',
+        stringify(buckconfig, { whitespace: true })
+      )
     } else {
       throw new Error(`Unknown build system: ${buildSystem}`)
     }

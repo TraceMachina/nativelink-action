@@ -40,11 +40,12 @@ build --remote_timeout=600
 build --remote_executor=grpcs://scheduler-demo-prefix.build-faster.nativelink.net`
 
 const defaultBuckOutput = `[buck2_re_client]
-engine_address = "scheduler-demo-prefix.build-faster.nativelink.net:443"
-action_cache_address = "cas-demo-prefix.build-faster.nativelink.net:443"
-cas_address = "cas-demo-prefix.build-faster.nativelink.net:443"
+engine_address = scheduler-demo-prefix.build-faster.nativelink.net:443
+action_cache_address = cas-demo-prefix.build-faster.nativelink.net:443
+cas_address = cas-demo-prefix.build-faster.nativelink.net:443
 tls = true
-http_headers = "x-nativelink-api-key:demo-key"`
+http_headers = x-nativelink-api-key:demo-key
+`
 
 describe('main.ts', () => {
   beforeEach(() => {
@@ -179,12 +180,15 @@ build --remote_executor=grpcs://scheduler-demo-prefix.uc1.scdev.nativelink.net`
       fs.readFileSync = () => {
         throw 'bad file'
       }
-      const core = makeCore({ ...defaultInputs, build_system })
-      await run(core)
-      expect(core.setFailed).toHaveBeenCalledWith(
-        'An unknown error occurred: \"bad file\"'
-      )
-      fs.readFileSync = oldFileSync
+      try {
+        const core = makeCore({ ...defaultInputs, build_system })
+        await run(core)
+        expect(core.setFailed).toHaveBeenCalledWith(
+          'An unknown error occurred: \"bad file\"'
+        )
+      } finally {
+        fs.readFileSync = oldFileSync
+      }
     }
   )
 
@@ -225,7 +229,8 @@ build --remote_executor=grpcs://scheduler-demo-prefix.uc1.scdev.nativelink.net`
     fs.writeFileSync(
       '.buckconfig',
       `[cells]
-root = "."`
+root = .
+`
     )
     writesBuckConfig(
       {
@@ -233,9 +238,9 @@ root = "."`
         build_system: 'buck2'
       },
       `${defaultBuckOutput}
-
 [cells]
-root = "."`
+root = .
+`
     )
   })
 })
