@@ -26,7 +26,7 @@ steps:
       repository-cache: true
 
   - name: Nativelink setup
-    uses: TraceMachina/nativelink-action@0ec6ddb897f731db2a4de9cf815dea5926820fb3
+    uses: TraceMachina/nativelink-action@latest
     with:
       api_key: ${{ secrets.NATIVELINK_API_KEY }}
       account: your-account-here
