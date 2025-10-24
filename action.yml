@@ -19,6 +19,9 @@ inputs:
   prefix:
     description: Nativelink Cache Prefix
     required: true
+  build_system:
+    description: 'Build system: bazel or buck2'
+    default: bazel
   cache_url:
     description: Nativelink Cache URL
   bes_url:

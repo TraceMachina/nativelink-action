@@ -37,7 +37,8 @@
   },
   "license": "FSL-1.1-Apache-2.0",
   "dependencies": {
-    "@actions/core": "^1.11.1"
+    "@actions/core": "^1.11.1",
+    "smol-toml": "^1.4.2"
   },
   "devDependencies": {
     "@eslint/compat": "^1.4.0",

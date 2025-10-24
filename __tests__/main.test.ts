@@ -6,7 +6,7 @@ jest.unstable_mockModule('fs', () => ({
   default: fs
 }))
 
-jest.spyOn(console, 'log').mockImplementation(() => {})
+// jest.spyOn(console, 'log').mockImplementation(() => {})
 
 // The module being tested should be imported dynamically. This ensures that the
 // mocks are used in place of any actual dependencies.
@@ -33,13 +33,20 @@ const defaultInputs = {
   prefix: 'demo-prefix'
 }
 
-const defaultOutput = `build --remote_cache=grpcs://cas-demo-prefix.build-faster.nativelink.net
+const defaultBazelOutput = `build --remote_cache=grpcs://cas-demo-prefix.build-faster.nativelink.net
 build --remote_header=x-nativelink-api-key=demo-key
 build --bes_backend=grpcs://bes-demo-prefix.build-faster.nativelink.net
 build --bes_header=x-nativelink-api-key=demo-key
 build --bes_results_url=https://app.nativelink.com/a/demo-account/build
 build --remote_timeout=600
 build --remote_executor=grpcs://scheduler-demo-prefix.build-faster.nativelink.net`
+
+const defaultBuckOutput = `[buck2_re_client]
+engine_address = "scheduler-demo-prefix.build-faster.nativelink.net:443"
+action_cache_address = "cas-demo-prefix.build-faster.nativelink.net:443"
+cas_address = "cas-demo-prefix.build-faster.nativelink.net:443"
+tls = true
+http_headers = "x-nativelink-api-key:demo-key"`
 
 describe('main.ts', () => {
   beforeEach(() => {
@@ -64,7 +71,7 @@ describe('main.ts', () => {
   }
 
   it('Writes bazel config', async () => {
-    writesBazelRc(defaultInputs, defaultOutput)
+    writesBazelRc(defaultInputs, defaultBazelOutput)
   })
 
   it('Writes bazel config for dev', async () => {
@@ -83,7 +90,7 @@ build --remote_executor=grpcs://scheduler-demo-prefix.uc1.scdev.nativelink.net`
   it('Writes bazel config with custom cache', async () => {
     writesBazelRc(
       { ...defaultInputs, cache_url: 'http://cache-url-foo' },
-      defaultOutput.replace(
+      defaultBazelOutput.replace(
         'grpcs://cas-demo-prefix.build-faster.nativelink.net',
         'http://cache-url-foo'
       )
@@ -93,7 +100,7 @@ build --remote_executor=grpcs://scheduler-demo-prefix.uc1.scdev.nativelink.net`
   it('Writes bazel config with custom bes', async () => {
     writesBazelRc(
       { ...defaultInputs, bes_url: 'http://bes-url-foo' },
-      defaultOutput.replace(
+      defaultBazelOutput.replace(
         'grpcs://bes-demo-prefix.build-faster.nativelink.net',
         'http://bes-url-foo'
       )
@@ -103,7 +110,7 @@ build --remote_executor=grpcs://scheduler-demo-prefix.uc1.scdev.nativelink.net`
   it('Writes bazel config with custom bes_results_url', async () => {
     writesBazelRc(
       { ...defaultInputs, bes_results_url: 'http://bes-results-url-foo' },
-      defaultOutput.replace(
+      defaultBazelOutput.replace(
         'https://app.nativelink.com/a/demo-account/build',
         'http://bes-results-url-foo'
       )
@@ -113,7 +120,7 @@ build --remote_executor=grpcs://scheduler-demo-prefix.uc1.scdev.nativelink.net`
   it('Writes bazel config with custom scheduler_url', async () => {
     writesBazelRc(
       { ...defaultInputs, scheduler_url: 'http://scheduler-url-foo' },
-      defaultOutput.replace(
+      defaultBazelOutput.replace(
         'grpcs://scheduler-demo-prefix.build-faster.nativelink.net',
         'http://scheduler-url-foo'
       )
@@ -123,7 +130,7 @@ build --remote_executor=grpcs://scheduler-demo-prefix.uc1.scdev.nativelink.net`
   it('Writes bazel config with custom remote timeout', async () => {
     writesBazelRc(
       { ...defaultInputs, remote_timeout: '100' },
-      defaultOutput.replace('600', '100')
+      defaultBazelOutput.replace('600', '100')
     )
   })
 
@@ -131,7 +138,7 @@ build --remote_executor=grpcs://scheduler-demo-prefix.uc1.scdev.nativelink.net`
     fs.writeFileSync('.bazelrc', 'build --existing_config=foo')
     writesBazelRc(
       defaultInputs,
-      'build --existing_config=foo\n' + defaultOutput
+      'build --existing_config=foo\n' + defaultBazelOutput
     )
   })
 
@@ -167,14 +174,70 @@ build --remote_executor=grpcs://scheduler-demo-prefix.uc1.scdev.nativelink.net`
     )
   })
 
-  it('Goes boom on non-error', async () => {
-    fs.readFileSync = () => {
-      throw 'bad file'
+  test.each(['bazel', 'buck2'])(
+    '%s: goes boom on non-error',
+    async (build_system) => {
+      const oldFileSync = fs.readFileSync
+      fs.readFileSync = () => {
+        throw 'bad file'
+      }
+      const core = makeCore({ ...defaultInputs, build_system })
+      await run(core)
+      expect(core.setFailed).toHaveBeenCalledWith(
+        'An unknown error occurred: \"bad file\"'
+      )
+      fs.readFileSync = oldFileSync
     }
-    const core = makeCore(defaultInputs)
+  )
+
+  it('Fails on bad build system', async () => {
+    const core = makeCore({
+      ...defaultInputs,
+      build_system: 'not-a-build-system'
+    })
     await run(core)
     expect(core.setFailed).toHaveBeenCalledWith(
-      'An unknown error occurred: \"bad file\"'
+      'Unknown build system: not-a-build-system'
+    )
+  })
+
+  const writesBuckConfig = async (
+    inputs: Record<string, string>,
+    output: string
+  ) => {
+    const core = makeCore(inputs)
+    await run(core)
+    expect(core.setFailed).not.toHaveBeenCalled()
+    const expected: Record<string, string> = {}
+    expected[`${process.cwd()}/.buckconfig`] = output
+    expect(vol.toJSON()).toEqual(expected)
+  }
+
+  it('Writes buck2 config', async () => {
+    writesBuckConfig(
+      {
+        ...defaultInputs,
+        build_system: 'buck2'
+      },
+      defaultBuckOutput
+    )
+  })
+
+  it('Writes buck2 config with existing', async () => {
+    fs.writeFileSync(
+      '.buckconfig',
+      `[cells]
+root = "."`
+    )
+    writesBuckConfig(
+      {
+        ...defaultInputs,
+        build_system: 'buck2'
+      },
+      `${defaultBuckOutput}
+
+[cells]
+root = "."`
     )
   })
 })
