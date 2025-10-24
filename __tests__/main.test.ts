@@ -6,8 +6,6 @@ jest.unstable_mockModule('fs', () => ({
   default: fs
 }))
 
-// jest.spyOn(console, 'log').mockImplementation(() => {})
-
 // The module being tested should be imported dynamically. This ensures that the
 // mocks are used in place of any actual dependencies.
 const { run } = await import('../src/main.ts')
