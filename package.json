@@ -29,7 +29,7 @@
     "format:write": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
-    "local-action": "@github/local-action . src/main.ts .env",
+    "local-action": "local-action . src/index.ts .env",
     "package": "rollup --config rollup.config.ts --configPlugin @rollup/plugin-typescript",
     "package:watch": "pnpm run package -- --watch",
     "test": "NODE_OPTIONS=--experimental-vm-modules NODE_NO_WARNINGS=1 jest",
@@ -68,9 +68,15 @@
     "rollup": "^4.52.4",
     "ts-jest": "^29.4.4",
     "ts-jest-resolver": "^2.0.1",
+    "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   },
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-gnu": "^4.52.5"
+  },
+  "pnpm": {
+    "overrides": {
+      "@actions/artifact": "^4"
+    }
   }
 }
