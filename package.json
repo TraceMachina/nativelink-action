@@ -72,5 +72,10 @@
   },
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-gnu": "^4.52.5"
+  },
+  "pnpm": {
+    "overrides": {
+      "@actions/artifact": "^4"
+    }
   }
 }
