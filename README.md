@@ -1,4 +1,4 @@
-# Nativelink Cloud action
+# Nativelink Cloud Action
 
 ![CI](https://github.com/actions/typescript-action/actions/workflows/ci.yml/badge.svg)
 [![Coverage](./badges/coverage.svg)](./badges/coverage.svg)
