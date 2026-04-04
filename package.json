@@ -77,7 +77,7 @@
   },
   "pnpm": {
     "overrides": {
-      "@actions/artifact": "^4"
+      "@actions/artifact": "^6.0.0"
     }
   }
 }
