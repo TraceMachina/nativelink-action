@@ -21,7 +21,10 @@ const makeCore = (inputs: Record<string, string>) => {
       }
       return ''
     },
-    setFailed: jest.fn()
+    setFailed: jest.fn(),
+    info: jest.fn(),
+    warning: jest.fn(),
+    getIDToken: jest.fn(async () => 'header.payload.signature')
   }
 }
 
@@ -169,7 +172,7 @@ build --remote_executor=grpcs://scheduler-demo-prefix.uc1.scdev.nativelink.net`
     }
     await run(core)
     expect(core.setFailed).toHaveBeenCalledWith(
-      'An unknown error occurred: \"Boom!\"'
+      'An unknown error occurred: "Boom!"'
     )
   })
 
@@ -184,7 +187,7 @@ build --remote_executor=grpcs://scheduler-demo-prefix.uc1.scdev.nativelink.net`
         const core = makeCore({ ...defaultInputs, build_system })
         await run(core)
         expect(core.setFailed).toHaveBeenCalledWith(
-          'An unknown error occurred: \"bad file\"'
+          'An unknown error occurred: "bad file"'
         )
       } finally {
         fs.readFileSync = oldFileSync
@@ -242,5 +245,192 @@ root = .
 root = .
 `
     )
+  })
+})
+
+describe('build attribution', () => {
+  const ticketId = 'ZmFrZS10aWNrZXQtaWQtZm9yLXRlc3RpbmctMDEyMzQ1Ng'
+  const okTicket = {
+    ticketId,
+    keyword: `nl_ticket:${ticketId}`,
+    repository: 'acme-corp/monorepo',
+    account: 'demo-account'
+  }
+
+  const stubFetch = (
+    response: Partial<Response> & { json?: () => unknown }
+  ) => {
+    const spy = jest.fn(async () => response as unknown as Response)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(globalThis as any).fetch = spy
+    return spy
+  }
+
+  afterEach(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (globalThis as any).fetch
+    vol.reset()
+  })
+
+  it('appends the ticket keyword to the bazelrc', async () => {
+    vol.reset()
+    vol.mkdirSync(process.cwd(), { recursive: true })
+    const fetchSpy = stubFetch({ ok: true, json: async () => okTicket })
+    const core = makeCore({
+      ...defaultInputs,
+      attribution_url: 'https://github-app.example/'
+    })
+
+    await run(core)
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'https://github-app.example/v1/ci/token-exchange',
+      expect.objectContaining({ method: 'POST' })
+    )
+    expect(vol.readFileSync('.bazelrc', 'utf-8')).toContain(
+      `build --bes_keywords=nl_ticket:${ticketId}`
+    )
+    expect(core.setFailed).not.toHaveBeenCalled()
+  })
+
+  it('sends the OIDC token in the body, never the URL', async () => {
+    vol.reset()
+    vol.mkdirSync(process.cwd(), { recursive: true })
+    const fetchSpy = stubFetch({ ok: true, json: async () => okTicket })
+
+    await run(
+      makeCore({
+        ...defaultInputs,
+        attribution_url: 'https://github-app.example'
+      })
+    )
+
+    const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit]
+    expect(url).not.toContain('?')
+    expect(JSON.parse(init.body as string)).toEqual({
+      token: 'header.payload.signature'
+    })
+  })
+
+  it('never writes the ticket id into the bazelrc verbatim without the prefix', async () => {
+    vol.reset()
+    vol.mkdirSync(process.cwd(), { recursive: true })
+    stubFetch({ ok: true, json: async () => okTicket })
+
+    const core = makeCore({
+      ...defaultInputs,
+      attribution_url: 'https://github-app.example'
+    })
+    await run(core)
+
+    // The id reaches the file only as part of the keyword flag, and the id must
+    // never be echoed to the log: Actions logs are public on open-source repos
+    // and this is a six-hour bearer credential.
+    for (const call of (core.info as jest.Mock).mock.calls) {
+      expect(String(call[0])).not.toContain(ticketId)
+    }
+  })
+
+  it('does not attribute when no url is configured', async () => {
+    vol.reset()
+    vol.mkdirSync(process.cwd(), { recursive: true })
+    const fetchSpy = stubFetch({ ok: true, json: async () => okTicket })
+
+    await run(makeCore(defaultInputs))
+
+    expect(fetchSpy).not.toHaveBeenCalled()
+    expect(vol.readFileSync('.bazelrc', 'utf-8')).not.toContain('bes_keywords')
+  })
+
+  // This runs inside the customer's build. Our failure must cost them a
+  // verified identity, never a green pipeline.
+  it.each([
+    ['refused', { ok: false, status: 403, json: async () => ({}) }],
+    ['unavailable', { ok: false, status: 502, json: async () => ({}) }],
+    ['empty ticket', { ok: true, json: async () => ({ ticketId: '' }) }]
+  ])('survives a %s exchange without failing the build', async (_name, res) => {
+    vol.reset()
+    vol.mkdirSync(process.cwd(), { recursive: true })
+    stubFetch(res)
+    const core = makeCore({
+      ...defaultInputs,
+      attribution_url: 'https://github-app.example'
+    })
+
+    await run(core)
+
+    expect(core.setFailed).not.toHaveBeenCalled()
+    expect(core.warning).toHaveBeenCalled()
+    expect(vol.readFileSync('.bazelrc', 'utf-8')).not.toContain('bes_keywords')
+  })
+
+  it('explains a missing id-token permission rather than reporting a raw error', async () => {
+    vol.reset()
+    vol.mkdirSync(process.cwd(), { recursive: true })
+    stubFetch({ ok: true, json: async () => okTicket })
+    const core = makeCore({
+      ...defaultInputs,
+      attribution_url: 'https://github-app.example'
+    })
+    core.getIDToken = jest.fn(async () => {
+      throw new Error('Unable to get ACTIONS_ID_TOKEN_REQUEST_URL env variable')
+    })
+
+    await run(core)
+
+    expect(core.setFailed).not.toHaveBeenCalled()
+    expect((core.warning as jest.Mock).mock.calls[0][0]).toContain(
+      'id-token: write'
+    )
+  })
+
+  it('fails the build when the caller opted into strictness', async () => {
+    vol.reset()
+    vol.mkdirSync(process.cwd(), { recursive: true })
+    stubFetch({ ok: false, status: 403, json: async () => ({}) })
+    const core = makeCore({
+      ...defaultInputs,
+      attribution_url: 'https://github-app.example',
+      fail_on_attribution_error: 'true'
+    })
+
+    await run(core)
+
+    expect(core.setFailed).toHaveBeenCalledWith(
+      'NativeLink build attribution failed'
+    )
+  })
+
+  // The audience is checked server-side, so a caller pointing at a deployment
+  // with a different configured audience must be able to override the default.
+  it('honours an explicit audience', async () => {
+    vol.reset()
+    vol.mkdirSync(process.cwd(), { recursive: true })
+    stubFetch({ ok: true, json: async () => okTicket })
+    const core = makeCore({
+      ...defaultInputs,
+      attribution_url: 'https://github-app.example',
+      attribution_audience: 'nativelink.internal'
+    })
+
+    await run(core)
+
+    expect(core.getIDToken).toHaveBeenCalledWith('nativelink.internal')
+  })
+
+  it('warns that buck2 cannot carry a ticket instead of ignoring the input', async () => {
+    vol.reset()
+    vol.mkdirSync(process.cwd(), { recursive: true })
+    const fetchSpy = stubFetch({ ok: true, json: async () => okTicket })
+    const core = makeCore({
+      ...defaultInputs,
+      build_system: 'buck2',
+      attribution_url: 'https://github-app.example'
+    })
+
+    await run(core)
+
+    expect(fetchSpy).not.toHaveBeenCalled()
+    expect((core.warning as jest.Mock).mock.calls[0][0]).toContain('buck2')
   })
 })

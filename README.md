@@ -45,3 +45,53 @@ is `tom-parker-shemilt-y0738m`.
 `NATIVELINK_API_KEY` is your `build --remote_header` value. e.g. if you have
 `build --remote_header=x-nativelink-api-key=some-key-value`, then
 `NATIVELINK_API_KEY` is `some-key-value`
+
+## Build attribution (optional)
+
+By default a build carries no trustworthy record of who ran it. Bazel's
+`BUILD_USER` is the OS username on the machine, which on a GitHub Actions runner
+is literally `runner`, and a workflow author can set it to anything.
+
+Set `attribution_url` and the action will instead ask GitHub for a token
+asserting this job's identity, exchange it with NativeLink for an opaque build
+ticket, and add that ticket to the `.bazelrc` it writes. NativeLink then shows
+the GitHub user, repository, branch, commit and pull request on the build —
+verified against GitHub's signature rather than taken on trust.
+
+```yaml
+permissions:
+  id-token: write # required: no token is minted without it
+  contents: read
+
+steps:
+  - name: Nativelink setup
+    uses: TraceMachina/nativelink-action@latest
+    with:
+      api_key: ${{ secrets.NATIVELINK_API_KEY }}
+      account: your-account-here
+      prefix: your-account-prefix-here
+      attribution_url: https://github-app.nativelink.com
+```
+
+| Input                       | Default          | Purpose                                                                 |
+| --------------------------- | ---------------- | ----------------------------------------------------------------------- |
+| `attribution_url`           | _unset_          | Origin of the NativeLink GitHub App service. Unset means no attribution |
+| `attribution_audience`      | `nativelink.com` | Audience the OIDC token is minted for; must match the server's          |
+| `fail_on_attribution_error` | `false`          | Fail the job when attribution cannot be established                     |
+
+Three things worth knowing:
+
+- **`permissions: id-token: write` is required.** Without it GitHub mints no
+  token at all, and the action says so rather than failing obscurely. This is by
+  far the most common setup mistake.
+- **Failure is soft by default.** A NativeLink outage, or a repository nobody
+  enabled, costs the build its verified identity and nothing else — the build
+  still runs and still uses the cache. Set `fail_on_attribution_error: true` if
+  you would rather fail than lose provenance.
+- **The repository must be enabled** in NativeLink under Settings →
+  Repositories. Connecting an organisation makes a repository visible; it stays
+  inert until someone turns it on.
+
+Bazel only for now — `--bes_keywords` is a Bazel concept and buck2 has no
+equivalent channel to carry the ticket, so the input is ignored there with a
+warning.

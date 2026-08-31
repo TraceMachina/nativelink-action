@@ -36,6 +36,23 @@ inputs:
   environment:
     description: Nativelink Environment
     default: prod
+  attribution_url:
+    description: >-
+      Origin of the NativeLink GitHub App service, e.g.
+      https://github-app.nativelink.com. Set this to attribute each build to the
+      GitHub user who ran it, verified against GitHub's own OIDC token. Requires
+      `permissions: id-token: write` in the workflow. Bazel only.
+  attribution_audience:
+    description: >-
+      Audience the OIDC token is minted for. Must match the server's configured
+      audience; a token minted for another service is rejected.
+    default: nativelink.com
+  fail_on_attribution_error:
+    description: >-
+      Fail the job when attribution cannot be established. Defaults to false: a
+      NativeLink outage or a repository nobody enabled should cost a build its
+      verified identity, not its result.
+    default: 'false'
 
 runs:
   using: node24
