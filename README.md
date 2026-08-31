@@ -4,9 +4,26 @@
 [![Coverage](./badges/coverage.svg)](./badges/coverage.svg)
 
 This action sets up your repository to use
-[Nativelink Cloud](https://nativelink.com/) for your Bazel build. We primarily
+[NativeLink Cloud](https://nativelink.com/) for your Bazel build. We primarily
 set the values in your `.bazelrc` (creating or appending this as necessary) and
 assume you're doing the rest of the Bazel setup.
+
+## Which NativeLink is this for?
+
+There are two ways to run NativeLink, and this action is written for the first:
+
+- **NativeLink Cloud** — the managed service at
+  [app.nativelink.com](https://app.nativelink.com). You sign up, you get an
+  account, and the cache and build-event endpoints are hosted for you. Every
+  default in this action assumes this.
+- **NativeLink Enterprise (self-hosted)** — NativeLink running inside your own
+  infrastructure, on your own network. See
+  [enterprise.nativelink.com](https://enterprise.nativelink.com).
+
+The action works for a self-hosted deployment too, but none of the defaults will
+be right: your cache, build-event and scheduler endpoints are your own, so pass
+`cache_url`, `bes_url` and `scheduler_url` explicitly. Take the values from the
+NativeLink application for your deployment rather than constructing them.
 
 ## Usage
 
@@ -45,6 +62,26 @@ is `tom-parker-shemilt-y0738m`.
 `NATIVELINK_API_KEY` is your `build --remote_header` value. e.g. if you have
 `build --remote_header=x-nativelink-api-key=some-key-value`, then
 `NATIVELINK_API_KEY` is `some-key-value`
+
+## Remote execution (optional)
+
+The action configures remote **caching** by default. Remote **execution** is
+opt-in, and needs the scheduler address for your deployment:
+
+```yaml
+with:
+  api_key: ${{ secrets.NATIVELINK_API_KEY }}
+  account: your-account-here
+  prefix: your-account-prefix-here
+  scheduler_url: grpcs://... # from your NativeLink application
+```
+
+There is deliberately no default. The scheduler address is not derivable from
+your account prefix and differs between deployments, so a guessed hostname would
+fail at build time rather than here — take the value from the quickstart
+settings in your NativeLink application, alongside the cache and API key values
+above. Leave it unset and you get a cache-only build, with no
+`--remote_executor` line written at all.
 
 ## Build attribution (optional)
 

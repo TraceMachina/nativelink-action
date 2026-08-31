@@ -29,7 +29,11 @@ inputs:
   bes_results_url:
     description: Nativelink Build Results URL
   scheduler_url:
-    description: Nativelink Scheduler URL
+    description: >-
+      Remote execution scheduler address, e.g. grpcs://scheduler-.... Find it in
+      your NativeLink application under the quickstart settings for your
+      account. Leave unset for a cache-only build; there is no default, because
+      the address is not derivable from your account prefix.
   remote_timeout:
     description: Remote Execution Timeout in seconds
     default: 600
