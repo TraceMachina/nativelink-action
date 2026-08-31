@@ -617,3 +617,21 @@ describe('build attribution hardening', () => {
     }
   )
 })
+
+// buck2 with remote execution: engine_address appears only when a scheduler was
+// supplied, so a cache-only buck2 setup stays valid rather than pointing at a
+// guessed hostname.
+it('Writes buck2 config with a scheduler', async () => {
+  vol.reset()
+  vol.mkdirSync(process.cwd(), { recursive: true })
+  await run(
+    makeCore({
+      ...defaultInputs,
+      build_system: 'buck2',
+      scheduler_url: 'grpcs://scheduler.example'
+    })
+  )
+
+  const buckconfig = vol.readFileSync('.buckconfig', 'utf-8') as string
+  expect(buckconfig).toContain('engine_address = scheduler.example:443')
+})
