@@ -27,8 +27,65 @@ NativeLink application for your deployment rather than constructing them.
 
 ## Usage
 
-1. Goto https://app.nativelink.com and signup for an account
-2. Add the following to your Github steps
+Three inputs are required — `api_key`, `account` and `prefix` — and all three
+come from one screen in the NativeLink application. Collect them first, then
+paste the workflow. Doing it the other way round means editing placeholders in a
+file you have already committed.
+
+### 1. Create an account and open the quickstart
+
+Go to [app.nativelink.com](https://app.nativelink.com) and sign up. Once you are
+in, open **Quickstart** and select **Bazel**. You will see a block like this,
+already filled in with your own values:
+
+```
+build --remote_cache=grpcs://cas-tom-parker-shemilt-y0738m.build-faster.nativelink.net
+build --remote_header=x-nativelink-api-key=abc123-your-real-key
+```
+
+Leave that page open. Every value below comes from those two lines.
+
+### 2. Read the three values off that block
+
+| Action input | Comes from                              | In the example above        |
+| ------------ | --------------------------------------- | --------------------------- |
+| `api_key`    | `--remote_header=x-nativelink-api-key=` | `abc123-your-real-key`      |
+| `prefix`     | `--remote_cache=` host, after `cas-`    | `tom-parker-shemilt-y0738m` |
+| `account`    | `prefix` without its last `-` segment   | `tom-parker-shemilt`        |
+
+`prefix` is your account name plus a short generated suffix, which is why
+`account` is the same string with that suffix removed. If you would rather not
+do it by eye, paste your own `--remote_cache` line into this and read the
+answers off:
+
+```bash
+CAS='grpcs://cas-tom-parker-shemilt-y0738m.build-faster.nativelink.net'  # <- yours
+
+PREFIX=$(printf '%s' "$CAS" | sed -E 's#^grpcs://cas-##; s#\..*$##')
+ACCOUNT=$(printf '%s' "$PREFIX" | sed -E 's#-[^-]+$##')
+printf 'prefix : %s\naccount: %s\n' "$PREFIX" "$ACCOUNT"
+```
+
+### 3. Store the API key as a repository secret
+
+The API key is a credential. It goes in GitHub's secret store, never in the
+workflow file.
+
+In your repository on GitHub: **Settings → Secrets and variables → Actions → New
+repository secret**. Name it exactly `NATIVELINK_API_KEY`, and paste the
+`api_key` value from the table above.
+
+The name has to match exactly, because the workflow below reads
+`secrets.NATIVELINK_API_KEY`. A typo here surfaces as an empty key and an
+authentication failure at build time, not as a workflow error.
+
+### 4. Add the action to your workflow
+
+In `.github/workflows/<your-workflow>.yml`, add both entries below to the job
+that runs your build — the `steps:` key is GitHub's own workflow syntax, so keep
+that line as it is and add the two `- uses:` entries under it. Substitute your
+own `account` and `prefix`; leave the `api_key` line exactly as written, since
+it reads the secret you just created.
 
 ```yaml
 steps:
@@ -43,25 +100,30 @@ steps:
       repository-cache: true
 
   - name: Nativelink setup
-    uses: TraceMachina/nativelink-action@latest
+    uses: TraceMachina/nativelink-action@v0
     with:
       api_key: ${{ secrets.NATIVELINK_API_KEY }}
-      account: your-account-here
-      prefix: your-account-prefix-here
+      account: tom-parker-shemilt # <- your account
+      prefix: tom-parker-shemilt-y0738m # <- your prefix
 ```
 
-You'll need to set `your-account-here` and `your-account-prefix-here`, as well
-as the `NATIVELINK_API_KEY` value.
+Commit, push, and let the workflow run. The action writes the cache
+configuration into `.bazelrc` before Bazel starts; a second run of the same
+build should be substantially faster than the first.
 
-To determine these values, look at the Quickstart Bazel settings for your
-account. If your `build --remote-cache=` value is say for example
-`build --remote_cache=grpcs://cas-tom-parker-shemilt-y0738m.build-faster.nativelink.net`,
-then `your-account-here` is `tom-parker-shemilt` and `your-account-prefix-here`
-is `tom-parker-shemilt-y0738m`.
+### Which version to reference
 
-`NATIVELINK_API_KEY` is your `build --remote_header` value. e.g. if you have
-`build --remote_header=x-nativelink-api-key=some-key-value`, then
-`NATIVELINK_API_KEY` is `some-key-value`
+Use `@v0`. It tracks the current release.
+
+**Do not use `@latest`.** It looks like it means "the newest version" and does
+not — it is an ordinary mutable tag that has to be moved by hand, and it
+currently points at an older commit than `v0` does. Earlier revisions of this
+document recommended it, which is why it appears in workflows that predate this
+note; change those to `@v0`.
+
+If you pin by commit SHA instead — the hardened option, and what GitHub
+recommends for third-party actions — take the SHA from a release rather than
+from the tip of `main`.
 
 ## Remote execution (optional)
 
@@ -71,9 +133,9 @@ opt-in, and needs the scheduler address for your deployment:
 ```yaml
 with:
   api_key: ${{ secrets.NATIVELINK_API_KEY }}
-  account: your-account-here
-  prefix: your-account-prefix-here
-  scheduler_url: grpcs://... # from your NativeLink application
+  account: tom-parker-shemilt # <- your account
+  prefix: tom-parker-shemilt-y0738m # <- your prefix
+  scheduler_url: grpcs://... # <- from your NativeLink application
 ```
 
 There is deliberately no default. The scheduler address is not derivable from
@@ -102,13 +164,19 @@ permissions:
 
 steps:
   - name: Nativelink setup
-    uses: TraceMachina/nativelink-action@latest
+    uses: TraceMachina/nativelink-action@v0
     with:
       api_key: ${{ secrets.NATIVELINK_API_KEY }}
-      account: your-account-here
-      prefix: your-account-prefix-here
+      account: tom-parker-shemilt # <- your account
+      prefix: tom-parker-shemilt-y0738m # <- your prefix
       attribution_url: https://github-app.nativelink.com
 ```
+
+**Needs v0.0.3 or newer.** The attribution inputs arrived in that release, so
+`@v0` is correct only if it has been moved to it — which it has. Referencing an
+older version does not fail: an unknown input is ignored, so the action runs and
+configures a perfectly ordinary unattributed build. If attribution silently does
+not appear, check the version you resolved before looking anywhere else.
 
 | Input                       | Default          | Purpose                                                                 |
 | --------------------------- | ---------------- | ----------------------------------------------------------------------- |
