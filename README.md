@@ -13,8 +13,8 @@ assume you're doing the rest of the Bazel setup.
 There are two ways to run NativeLink, and this action is written for the first:
 
 - **NativeLink Cloud** — the managed service at
-  [app.nativelink.com](https://app.nativelink.com). You sign up, you get an
-  account, and the cache and build-event endpoints are hosted for you. Every
+  [dev.app.nativelink.com](https://dev.app.nativelink.com). You sign up, you get
+  an account, and the cache and build-event endpoints are hosted for you. Every
   default in this action assumes this.
 - **NativeLink Enterprise (self-hosted)** — NativeLink running inside your own
   infrastructure, on your own network. See
@@ -34,9 +34,9 @@ file you have already committed.
 
 ### 1. Create an account and open the quickstart
 
-Go to [app.nativelink.com](https://app.nativelink.com) and sign up. Once you are
-in, open **Quickstart** and select **Bazel**. You will see a block like this,
-already filled in with your own values:
+Go to [dev.app.nativelink.com](https://dev.app.nativelink.com) and sign up. Once
+you are in, open **Quickstart** and select **Bazel**. You will see a block like
+this, already filled in with your own values:
 
 ```
 build --remote_cache=grpcs://cas-tom-parker-shemilt-y0738m.build-faster.nativelink.net
