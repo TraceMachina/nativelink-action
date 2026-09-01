@@ -1,6 +1,7 @@
 name: Nativelink
 description:
-  Action to use https://app.nativelink.com/ in a GitHub Actions workflow
+  Bazel remote caching and remote execution against NativeLink Cloud, or your
+  own self-hosted NativeLink Enterprise deployment
 author: Trace Machina <tom@tracemachina.com>
 
 # Add your action's branding here. This will appear on the GitHub Marketplace.
