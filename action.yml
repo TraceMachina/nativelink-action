@@ -1,7 +1,7 @@
 name: Nativelink
 description:
-  Bazel remote caching and remote execution against NativeLink Cloud, or your
-  own self-hosted NativeLink Enterprise deployment
+  Bazel remote caching and remote execution — NativeLink Cloud, or on-prem with
+  NativeLink Enterprise (enterprise.nativelink.com)
 author: Trace Machina <tom@tracemachina.com>
 
 # Add your action's branding here. This will appear on the GitHub Marketplace.

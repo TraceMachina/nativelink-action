@@ -16,8 +16,8 @@ There are two ways to run NativeLink, and this action is written for the first:
   [dev.app.nativelink.com](https://dev.app.nativelink.com). You sign up, you get
   an account, and the cache and build-event endpoints are hosted for you. Every
   default in this action assumes this.
-- **NativeLink Enterprise (self-hosted)** — NativeLink running inside your own
-  infrastructure, on your own network. See
+- **NativeLink Enterprise (on-prem / self-hosted)** — NativeLink running inside
+  your own infrastructure, on your own network. See
   [enterprise.nativelink.com](https://enterprise.nativelink.com).
 
 The action works for a self-hosted deployment too, but none of the defaults will

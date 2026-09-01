@@ -1,7 +1,7 @@
 {
   "name": "nativelink-action",
   "description": "Nativelink GitHub Action",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "author": "",
   "type": "module",
   "private": true,
