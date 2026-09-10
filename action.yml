@@ -45,8 +45,9 @@ inputs:
     description: >-
       Origin of the NativeLink GitHub App service, e.g.
       https://github-app.nativelink.com. Set this to attribute each build to the
-      GitHub user who ran it, verified against GitHub's own OIDC token. Requires
-      `permissions: id-token: write` in the workflow. Bazel only.
+      GitHub user who ran it, verified against GitHub's own OIDC token. Requests
+      a fresh ticket per Bazel invocation. Requires Python 3 and `permissions:
+      id-token: write` in the workflow. Bazel only.
   attribution_audience:
     description: >-
       Audience the OIDC token is minted for. Must match the server's configured
@@ -62,3 +63,5 @@ inputs:
 runs:
   using: node24
   main: dist/index.js
+  post: dist/post.js
+  post-if: always()

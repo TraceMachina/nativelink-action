@@ -1,0 +1,30 @@
+name: NativeLink build attribution
+description:
+  Attach GitHub identity to each Bazel invocation using an existing cloud
+  configuration.
+inputs:
+  attribution_url:
+    description: HTTPS origin of the NativeLink GitHub App service.
+    required: true
+  attribution_audience:
+    description: Audience configured on the NativeLink GitHub App service.
+    default: nativelink.com
+  fail_on_attribution_error:
+    description: Fail instead of continuing without attribution.
+    default: 'false'
+  bazelrc:
+    description: Existing bazelrc containing the NativeLink BES configuration.
+    default: .bazelrc
+outputs:
+  attribution-config:
+    description:
+      Temporary credential file for a BuildKit secret mount. Never upload as an
+      artifact.
+  attribution-wrapper:
+    description:
+      Portable Python wrapper for a BuildKit secret mount or Bazelisk hook.
+runs:
+  using: node24
+  main: ../dist/attribution.js
+  post: ../dist/post.js
+  post-if: always()

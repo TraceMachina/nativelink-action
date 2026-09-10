@@ -1,0 +1,36 @@
+import fs from 'node:fs';
+import { c as core } from './core.js';
+import 'os';
+import 'crypto';
+import 'fs';
+import 'path';
+import 'http';
+import 'https';
+import 'net';
+import 'tls';
+import 'events';
+import 'assert';
+import 'util';
+import 'stream';
+import 'buffer';
+import 'querystring';
+import 'stream/web';
+import 'node:stream';
+import 'node:util';
+import 'node:events';
+import 'worker_threads';
+import 'perf_hooks';
+import 'util/types';
+import 'async_hooks';
+import 'console';
+import 'url';
+import 'zlib';
+import 'string_decoder';
+import 'diagnostics_channel';
+import 'child_process';
+import 'timers';
+
+const directory = core.getState('attribution-directory');
+if (directory)
+    fs.rmSync(directory, { recursive: true, force: true });
+//# sourceMappingURL=post.js.map

@@ -104,3 +104,6 @@ __tests__/runner/*
 # Nix
 .direnv
 .pre-commit-config.yaml
+
+# Python attribution tests
+__pycache__/

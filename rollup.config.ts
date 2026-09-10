@@ -19,10 +19,16 @@ import nodeResolve from '@rollup/plugin-node-resolve'
 import typescript from '@rollup/plugin-typescript'
 
 const config = {
-  input: 'src/index.ts',
+  input: {
+    index: 'src/index.ts',
+    attribution: 'src/attribution-index.ts',
+    post: 'src/post.ts'
+  },
   output: {
     esModule: true,
-    file: 'dist/index.js',
+    dir: 'dist',
+    entryFileNames: '[name].js',
+    chunkFileNames: '[name].js',
     format: 'es',
     sourcemap: true
   },

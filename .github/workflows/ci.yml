@@ -34,6 +34,13 @@ jobs:
         id: npm-ci-test
         run: nix develop --impure --command bash -c "pnpm ci-test"
 
+  test-attribution-launcher:
+    name: Attribution launcher tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - run: python3 -m unittest discover -s scripts -v
+
   test-action:
     name: GitHub Actions Test
     runs-on: ubuntu-24.04
