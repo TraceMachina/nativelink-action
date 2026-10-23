@@ -4,7 +4,7 @@
 [![Coverage](./badges/coverage.svg)](./badges/coverage.svg)
 
 This action sets up your repository to use
-[NativeLink Cloud](https://nativelink.com/) for your Bazel build. We primarily
+[NativeLink Cloud](https://aws.amazon.com/marketplace/pp/prodview-agvj564jeoywo) for your Bazel build. We primarily
 set the values in your `.bazelrc` (creating or appending this as necessary) and
 assume you're doing the rest of the Bazel setup.
 
@@ -12,8 +12,7 @@ assume you're doing the rest of the Bazel setup.
 
 There are two ways to run NativeLink, and this action is written for the first:
 
-- **NativeLink Cloud** — the managed service at
-  [dev.app.nativelink.com](https://dev.app.nativelink.com). You sign up, you get
+- **NativeLink Cloud** — the managed service on [AWS](https://aws.amazon.com/marketplace/pp/prodview-agvj564jeoywo). You sign up, you get
   an account, and the cache and build-event endpoints are hosted for you. Every
   default in this action assumes this.
 - **NativeLink Enterprise (on-prem / self-hosted)** — NativeLink running inside
